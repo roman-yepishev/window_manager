@@ -263,6 +263,15 @@ void WindowManager::Show() {
     ::SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
   }
 
+  if (IsFullScreen()) {
+    // Taskbar should treat the window as fullscreen and adjust itself below the
+    // window in z-order.
+    ::SetProp(hWnd, L"NonRudeHWND", reinterpret_cast<HANDLE>(FALSE));
+  } else {
+    // Taskbar should keep itself in front of the window in z-order.
+    ::SetProp(hWnd, L"NonRudeHWND", reinterpret_cast<HANDLE>(TRUE));
+  }
+
   ShowWindowAsync(GetMainWindow(), SW_SHOW);
   SetForegroundWindow(GetMainWindow());
 }
@@ -558,6 +567,10 @@ void WindowManager::SetFullScreen(const flutter::EncodableMap& args) {
   // implements this (we got permission from the author, I believe)
   // https://github.com/alexmercerind/media_kit/blob/1226bcff36eab27cb17d60c33e9c15ca489c1f06/media_kit_video/windows/utils.cc
 
+  // Hide the window before switching to/from full screen for Taskbar to notice
+  // the NonRudeHWND property.
+  Hide();
+
   // Save current window state if not already fullscreen.
   if (!g_is_window_fullscreen) {
     // Save current window information.
@@ -615,6 +628,8 @@ void WindowManager::SetFullScreen(const flutter::EncodableMap& args) {
           SWP_NOACTIVATE | SWP_NOZORDER);
     }
   }
+
+  Show();
 }
 
 void WindowManager::SetAspectRatio(const flutter::EncodableMap& args) {
